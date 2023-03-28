@@ -1,0 +1,790 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+# *Análisis adicionales encuesta CEPRA-RES*
+
+## *Librerias*
+
+```{r}
+library(dplyr)
+library(readxl)
+library(janitor)
+library(ggplot2)
+library(forcats)
+library(readr)
+library(vcd)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) 
+
+
+```
+
+# *Datos*
+
+
+## *Datos preprocesados*
+
+```{r}
+
+datos <- read_rds("datos_procesados.rds")
+
+unique(datos$city)
+
+diccionario <- readxl::read_excel("encuesta_padres_limpio.xlsx", sheet = "diccionario")
+
+glimpse(datos)
+
+datos_gpt <- datos|>
+  select(city,sexo,)
+```
+
+# *Funciones*
+
+```{r}
+
+
+my.table <- function(var1) {
+  t.p <- datos|>
+    tabyl(city,!!as.symbol(var1))|>
+    adorn_totals("row")|>
+    adorn_percentages("row")|>
+    adorn_pct_formatting(digits=1,rounding = "half to even")
+  
+  t.n <- datos|>
+    tabyl(city,!!as.symbol(var1))|>
+    adorn_totals("row")
+  
+  t <- t.n
+  
+  for (i in 2:ncol(t.n)) {
+    t[,i] <- paste0(t.n[,i],"(",t.p[,i],")")
+    
+  }
+  t
+}
+
+
+### Función grafico de barras
+
+barra.g <- function(data=datos,cat="city",var="ida_time"){
+  
+  data|>
+    group_by(!!as.symbol(cat), !!as.symbol(var))|>
+    summarise(n=n())|>
+    group_by(!!as.symbol(cat))|>
+    mutate(pcnt=n/sum(n)*100)|>
+    
+    ggplot(aes(x=!!as.symbol(var), y=pcnt))+
+    geom_col(position = "dodge", fill="gray")+
+    geom_text(aes(y=pcnt,label=paste0(round(pcnt,1),"%")),
+              position=position_dodge(0.9), 
+              vjust=-0.5,
+              size=6,
+              )+
+    facet_wrap(vars(!!as.symbol(cat)),)+
+    scale_y_continuous(expand=expansion(mult=c(0,.2)))+
+    ylab("%")
+    # theme(strip.text = element_text(size=12))
+    
+}
+
+
+
+### Función para mosaic plot
+my.mosaic <- function(data, form="ida_time_g1~camina"){
+  mosaic(data=data,
+        as.formula(form),
+        direction = c("v", "h"),
+        gp = shading_max,
+        spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+  
+}
+
+
+### Función para guardar gráficos
+
+dir <- "graficos/"
+
+my.ggsave <- function(filename = default_name(plot), 
+                      height= 8, 
+                      width= 15, 
+                      units="cm",
+                      dpi= 300, ...){
+  ggsave(path = dir,filename=filename, height=height, width=width, dpi=dpi, ...)
+}
+
+
+my.grsave <- function(fname = default_name(plot), 
+                      height= 8, 
+                      width= 15, 
+                      units="cm",
+                      dpi= 300, ...){
+  png(filename = paste0(dir,fname),
+      height=height, 
+      width=width, 
+      units=units,
+      res =dpi
+      )
+  plot()
+}
+
+
+```
+
+### *Temas*
+
+```{r}
+
+
+theme_set(theme_minimal(base_size=22))
+theme_update(axis.line.x.bottom=element_line(colour = "black"))
+
+
+```
+
+# *Descriptivo*
+
+## *Sexo*
+
+```{r}
+
+sex.t <- my.table(var1 = "sex")
+clipr::write_clip(sex.t)
+sex.t
+
+
+
+```
+
+## *Modos*
+
+```{r}
+
+
+ida_mode.t <- my.table(var1 = "ida_mode")
+clipr::write_clip(ida_mode.t)
+ida_mode.t
+
+vuelta_mode.t <- my.table(var1 = "vuelta_mode")
+clipr::write_clip(vuelta_mode.t)
+vuelta_mode.t
+
+
+ida_mode_g1.t <- my.table(var1 = "ida_mode_g1")
+clipr::write_clip(ida_mode_g1.t)
+ida_mode_g1.t
+
+vuelta_mode_g1.t <- my.table(var1 = "vuelta_mode_g1")
+clipr::write_clip(vuelta_mode_g1.t)
+vuelta_mode_g1.t
+
+active_mode <- my.table(var1 = "active_mode")
+clipr::write_clip(camina.t)
+camina.t
+
+
+vuelta_mode.t <- my.table(var1 = "vuelta_mode")
+clipr::write_clip(vuelta_mode.t)
+vuelta_mode.t
+
+
+
+```
+
+## *Tiempos*
+
+```{r}
+
+ida_tiempo.t <- my.table(var1 = "ida_time")
+ida_tiempo.t
+clipr::write_clip(ida_tiempo.t)
+
+
+barra.g(data = datos,cat = "city",var="ida_time")+
+  xlab("Travel Time to School (minutes)")+
+  theme(panel.grid.major.x = element_blank())
+
+
+
+dev.new(width = 15, height = 8, unit="cm", noRStudioGD = T);last_plot()
+
+#my.ggsave("time to shcool.png", width = 15,height = 8, dpi = 300)
+
+
+
+fisher.test(ida_tiempo.t, simulate.p.value=TRUE)
+
+
+```
+
+## *Solo o acompañado*
+
+```{r}
+
+
+barra.g(data = datos,cat = "city",var="ida_bythemself")+
+  xlab("Home to Shool by themself")+
+  theme(panel.grid.major.x = element_blank())
+
+dev.new(width = 7, height = 5, unit="cm", noRStudioGD = T);last_plot()
+
+##my.ggsave("home to shcool by themself.png", width = 7,height = 5, dpi = 300)
+
+
+barra.g(data = datos,cat = "city",var="vuelta_bythemself")+
+  xlab("School to home by themself")+
+  theme(panel.grid.major.x = element_blank())
+dev.new(width = 7, height = 5, unit="cm", noRStudioGD = T);last_plot()
+
+#my.ggsave("school to home by themself.png", width = 7,height = 5, dpi = 300)
+
+
+```
+
+## Beneficios
+
+```{r}
+
+questions <- c(movac_academic ="Improves academic performance",
+              movac_cvrisk="Reduces cardiovascular risk",
+              movac_obesity ="Prevents obesity",
+              movac_pollut  ="Reduces pollution",
+              movac_traffic="Reduces traffic")
+
+
+d2 <- datos|>
+  select(city,movac_obesity,movac_cvrisk,movac_pollut,movac_traffic,movac_academic)|>
+  tidyr::pivot_longer(!city, names_to = "que", values_to = "answ")|>
+  mutate(answ1=factor(recode(answ,
+                             "Totally agree"="Agree",
+                             "Somehow agree"="Agree",
+                             "Somehow disagree"="Disagree", 
+                             "Totally disagree"="Disagree",
+                             "N.A."="N.A."
+                             )),
+         answ=fct_relevel(answ,c("Totally agree", "Somehow agree", "Somehow disagree", "Totally disagree", "N.A.")),
+         answ1=fct_relevel(answ1,c("Agree", "Disagree", "N.A."))
+  )|>
+  group_by(city,que, answ1)|>
+  summarise(n=n())|>
+  mutate(pcnt=n/sum(n)*100)
+  
+d2|>  ggplot(aes(y=city, x=pcnt, fill=forcats::fct_rev(answ1)))+
+  geom_col(col="black")+
+  geom_vline(xintercept = c(0,25,50,75,100))+
+  scale_fill_manual("",
+                    values = c("Agree"="gray50",
+                               "Disagree"="gray75",
+                               "N.A."="white"))+
+  facet_wrap(c("que"),ncol =1,
+             strip.position="top",
+             
+             labeller =labeller(que=questions)
+             )+
+  theme(panel.grid.major.x = element_blank(),
+        legend.position = "bottom",
+        axis.title = element_blank(),
+        axis.ticks.x = element_line()
+        )
+
+dev.new(width = 8, height =8, unit="cm", noRStudioGD = T);last_plot()
+
+# my.ggsave("benefits.png", width = 5,height = 8, dpi = 300)
+
+
+```
+
+## Razones
+
+```{r}
+
+d3 <- datos|>
+  select(city,ida_mode_g1,
+    razones_modo_distancia,
+         razones_modo_seguridad_vial,
+        razones_modo_seguridad_personal,
+        razones_modo_relaciones_sociales,
+        razones_modo_costo,
+        razones_modo_salud,
+        razones_modo_conveniencia
+)|>
+  tidyr::pivot_longer(cols = starts_with("razones_modo_"),
+                      names_to = "que",
+                      names_prefix = "razones_modo_",
+                      values_to = "answ",
+                      values_drop_na = TRUE
+                      )|>
+  mutate(answ1=factor(recode(que,
+                             "distancia"="Distance",
+                             "seguridad_vial"="Road safety",
+                             "seguridad_personal"="Personal security", 
+                             "relaciones_sociales"="Social relations",
+                             "costo"="Cost",
+                             "salud"="Health",
+                             "conveniencia"="Convenience"
+                             )))|>
+  group_by(city,ida_mode_g1,answ1)|>
+  summarise(n=sum(as.integer(answ)))|>
+  mutate(pcnt=n/sum(n)*100)
+
+d3|>my.table()
+
+d3|>
+  filter(ida_mode_g1=="Active",
+         )|>
+  ggplot(aes(y=city, x=pcnt, fill=forcats::fct_rev(answ1)))+
+  geom_col(col="black")+
+  geom_text(aes(label = round(pcnt,1), x=pcnt),
+            position = position_stack(vjust = 0.5)
+            )+
+  # geom_vline(xintercept = c(0,25,50,75,100))+
+  # scale_fill_manual("",
+  #                   values = c("Agree"="gray50",
+  #                              "Disagree"="gray75",
+  #                              "N.A."="white"))+
+  # facet_wrap(c("ida_mode_g1 "),ncol =1,
+  #            strip.position="top",
+  #            
+  #            # labeller =labeller(que=questions)
+  #            )+
+  theme(panel.grid.major.x = element_blank(),
+        legend.position = "right",
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks.x = element_line()
+        )
+
+dev.new(width = 15, height =6, unit="cm", noRStudioGD = T);last_plot()
+
+# my.ggsave("reasons.png", width = 15,height = 4, dpi = 300)
+
+```
+
+## Concerns
+
+```{r}
+
+questions <- diccionario|>
+  filter(grepl("preocupa_",pregunta))|>
+  filter(pregunta!="preocupa_om")|>
+  select(pregunta,label)
+  
+#Vector para traducir preguntas
+recode_que <- questions$label
+names(recode_que) <- questions$pregunta
+
+#Vector para traducir respuestas
+recode_ans <-c("A lot","Some","Very little","Nothing","N.A.")
+names(recode_ans) <- c("Mucho","Regular","Poco","Nada","No sabe/No contesta")
+
+
+d4 <- datos|>
+  select(city,ida_mode_g2,
+         preocupa_distancia,
+         preocupa_trafico,
+         preocupa_velocidad,
+         preocupa_tiempo,
+         preocupa_seguridad_cruces,
+         preocupa_falta_policias,
+         preocupa_violencia,
+         preocupa_frio_calor,
+         preocupa_lluvia,
+         preocupa_peso,
+         preocupa_falta_otros_adultos,
+         preocupa_aceras,
+         preocupa_falta_otros_ninos,
+         preocupa_aburrido_caminar,
+         preocupa_falta_otros_adultos_bici,
+         preocupa_falta_ciclovias,
+         preocupa_falta_lugares_bici,
+         preocupa_falta_otrosninos_bici,
+         preocupa_aburrido_bici
+         )|>
+  tidyr::pivot_longer(cols = starts_with("preocupa_"),
+                      names_to = "que_o",
+                      # names_prefix = "preocupa_",
+                      values_to = "answ_o",
+                      values_drop_na = TRUE
+                      )|>
+  mutate(que = recode(que_o, !!!recode_que),
+         answ = recode(answ_o, !!!recode_ans),
+         answ = fct_relevel(answ,recode_ans)
+         )
+
+### ANAlisis por city
+d4.city <- d4|>
+  group_by(city,que,answ)|>
+  summarise(n=n())|>
+  mutate(pcnt=n/sum(n)*100)
+
+d4.c <- d4.city|>filter(city=="Cuenca")
+
+pos.c <- d4.c|>filter(answ=="A lot")|>
+  arrange(pcnt)
+  
+d4.c|>mutate(que = factor(que,
+                        levels=as.vector(pos.c$que))
+             )|>
+  ggplot(aes(y=que, x=pcnt, fill=forcats::fct_rev(answ)))+
+  geom_col(col="black")+
+  geom_vline(xintercept = c(0,25,50,75,100))+
+  scale_fill_grey(start = 1,end=0.3)+
+  facet_wrap(c("city"),ncol =2,
+  #            strip.position="top",
+  )+
+  guides(fill = guide_legend(reverse = T))+
+  theme(panel.grid.major.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        axis.title = element_blank(),
+        axis.ticks.x = element_line()
+        )
+
+dev.new(width = 8, height =8, unit="cm", noRStudioGD = T);last_plot()
+# my.ggsave("concerns_cuenca.png", width = 8,height = 8, dpi = 300)
+
+
+d4.i <- d4.city|>filter(city=="Ibarra")
+
+pos.i <- d4.i|>filter(answ=="A lot")|>
+  arrange(pcnt)
+  
+d4.i|>mutate(que = factor(que,
+                        levels=as.vector(pos.i$que))
+             )|>
+  ggplot(aes(y=que, x=pcnt, fill=forcats::fct_rev(answ)))+
+  geom_col(col="black")+
+  geom_vline(xintercept = c(0,25,50,75,100))+
+  scale_fill_grey(start = 1,end=0.3)+
+  facet_wrap(c("city"),ncol =2,
+  #            strip.position="top",
+  )+
+  guides(fill = guide_legend(reverse = T))+
+  theme(panel.grid.major.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        axis.title = element_blank(),
+        axis.ticks.x = element_line()
+        )
+
+dev.new(width = 8, height =8, unit="cm", noRStudioGD = T);last_plot()
+# my.ggsave("concerns_ibarra.png", width = 8,height = 8, dpi = 300)
+
+
+## Analisis por modo
+
+
+d4.modo <- d4|>
+  group_by(ida_mode_g2,que,answ)|>
+  summarise(n=n())|>
+  mutate(pcnt=n/sum(n)*100)
+
+
+d4.ac <- d4.modo|>filter(ida_mode_g2=="Active")
+
+pos.ac <- d4.ac|>filter(answ=="A lot")|>
+  arrange(pcnt)
+
+  
+d4.ac|>mutate(que = factor(que,
+                        levels=as.vector(pos.ac$que))
+             )|>
+  ggplot(aes(y=que, x=pcnt, fill=forcats::fct_rev(answ)))+
+  geom_col(col="black")+
+  geom_vline(xintercept = c(0,25,50,75,100))+
+  scale_fill_grey(start = 1,end=0.3)+
+  facet_wrap(c("ida_mode_g2"),ncol =2,
+  #            strip.position="top",
+  )+
+  guides(fill = guide_legend(reverse = T))+
+  theme(panel.grid.major.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        axis.title = element_blank(),
+        axis.ticks.x = element_line()
+        )
+
+dev.new(width = 8, height =8, unit="cm", noRStudioGD = T);last_plot()
+# my.ggsave("concerns_active.png", width = 8,height = 8, dpi = 300)
+
+
+
+
+
+d4.motor <- d4.modo|>filter(ida_mode_g2=="Motorised")
+
+pos.motor <- d4.motor|>filter(answ=="A lot")|>
+  arrange(pcnt)
+
+  
+d4.motor|>mutate(que = factor(que,
+                        levels=as.vector(pos.motor$que))
+             )|>
+  ggplot(aes(y=que, x=pcnt, fill=forcats::fct_rev(answ)))+
+  geom_col(col="black")+
+  geom_vline(xintercept = c(0,25,50,75,100))+
+  scale_fill_grey(start = 1,end=0.3)+
+  facet_wrap(c("ida_mode_g2"),ncol =2,
+  #            strip.position="top",
+  )+
+  guides(fill = guide_legend(reverse = T))+
+  theme(panel.grid.major.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position = "bottom",
+        axis.title = element_blank(),
+        axis.ticks.x = element_line()
+        )
+
+dev.new(width = 8, height =8, unit="cm", noRStudioGD = T);last_plot()
+# my.ggsave("concerns_motorised.png", width = 8,height = 8, dpi = 300)
+
+```
+
+
+## Improvements
+
+```{r}
+
+
+questions <- diccionario|>
+  filter(grepl("mejoras_",pregunta))|>
+  filter(pregunta!="mejoras_om")|>
+  select(pregunta,label)
+  
+#Vector para traducir preguntas
+recode_que <- questions$label
+names(recode_que) <- questions$pregunta
+
+#Vector para traducir respuestas
+recode_ans <-c("Yes","No","N.A.")
+names(recode_ans) <- c("Sí","No","No sabe/No contesta")
+
+
+d5 <- datos|>
+  select(city,ida_mode_g2,
+         questions$pregunta
+         )|>
+  tidyr::pivot_longer(cols = questions$pregunta,
+                      names_to = "que_o",
+                      values_to = "answ_o",
+                      values_drop_na = TRUE
+                      )|>
+  mutate(que = recode(que_o, !!!recode_que),
+         answ = recode(answ_o, !!!recode_ans),
+         answ = fct_relevel(answ,recode_ans)
+         )
+
+#Por city
+d5.city <- d5|>
+  group_by(city,que,answ)|>
+  summarise(n=n())|>
+  mutate(pcnt=n/sum(n)*100)
+
+ 
+d5.city|>  ggplot(aes(y=city, x=pcnt, fill=forcats::fct_rev(answ)))+
+  geom_col(col="black")+
+  geom_vline(xintercept = c(0,25,50,75,100))+
+  scale_fill_grey(start = 1,end =0.3 )+
+  facet_wrap(c("que"),ncol =2,
+             strip.position="top",
+             # labeller =labeller(questions$label)
+             )+
+  guides(fill = guide_legend(reverse = T))+
+  theme(panel.grid.major.x = element_blank(),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        axis.title = element_blank(),
+        axis.ticks.x = element_line()
+        )
+
+dev.new(width = 8, height =8, unit="cm", noRStudioGD = T);last_plot()
+# my.ggsave("improvement_city.png", width = 8,height = 8, dpi = 300)
+
+```
+
+
+# *Asociaciones*
+
+
+```{r}
+
+set.seed(1977)
+
+#Sexo
+d1 <- datos|>  
+  filter(sex!="N.A.")|>
+  droplevels()
+
+form=~sex+active_mode
+
+
+mosaic(data=d1,form,
+        gp = shading_max,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+
+
+#Mode by cities.
+d1 <- datos
+form=~active_mode+city
+mosaic(data=d1,form,
+        gp = shading_hcl,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+ 
+
+ 
+#Mode by time
+d1 <- datos|>
+  filter(ida_time_g1!="N.A.")|>
+  rename("Travel_time"=ida_time_g1)|>
+  droplevels()
+
+form=~active_mode+Travel_time
+mosaic(data=d1,form,
+        gp = shading_hcl,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+
+
+#Mode by time
+d1 <- datos|>
+  filter(ida_time_g1!="N.A.")|>
+  rename("Travel_time"=ida_time_g1)|>
+  droplevels()
+
+form=~active_mode+Travel_time
+mosaic(data=d1,form,
+        gp = shading_hcl,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+
+
+
+#Mode by socioeconomic
+d1 <- datos|>
+  filter(parent_studies!="N.A.")|>
+  # rename("Travel_time"=ida_time_g1)|>
+  droplevels()
+
+form=~active_mode+parent_studies
+mosaic(data=d1,form,
+        gp = shading_max,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+
+d1 <- datos|>
+  filter(family_vehicle!="N.A.")|>
+  # rename("Travel_time"=ida_time_g1)|>
+  droplevels()
+
+form=~active_mode+family_vehicle
+mosaic(data=d1,form,
+        gp = shading_max,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+d1 <- datos|>
+  filter(household_income!="N.A.")|>
+  # rename("Travel_time"=ida_time_g1)|>
+  droplevels()
+
+form=~active_mode+household_income
+mosaic(data=d1,form,
+        gp = shading_max,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+d1 <- datos|>
+  filter(household_income!="N.A.")|>
+  # rename("Travel_time"=ida_time_g1)|>
+  droplevels()
+
+```
+
+
+```{r}
+
+
+d1 <- datos|>
+  filter(household_income!="N.A.",
+         family_vehicle!="N.A.")|>
+  # rename("Travel_time"=ida_time_g1)|>
+  droplevels()
+
+form=~family_vehicle+household_income
+
+mosaic(data=d1,form,
+        gp = shading_max,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+
+
+```
+
+```{r landuse}
+dens <- read_rds("densidades_uso.rds")|>
+  mutate(dens_cat=if_else(dens_conc_ha>10,"High","Low"))
+  
+cue_emaps <- st_read("eMAPS/score_areas_cue.gpkg")|>
+  select(cod_inst=cod_zona,emaps_score,emaps_score_max)
+
+
+ib_emaps <- st_read("eMAPS/ib_areas.gpkg")|>
+  select(cod_inst=cod_zona,
+         emaps_score=emaps_scor,
+         emaps_score_max=emaps_sc_1)
+
+emaps <- rbind(cue_emaps,ib_emaps)|>
+  mutate(emaps_rel = emaps_score/emaps_score_max,
+    emaps_cat=if_else(emaps_score>mean(emaps_score),"High","Low")
+         )
+  
+
+
+act_pcnt <- datos|>
+  group_by(cod_inst)|>
+  summarise(n=n(),
+            pcnt_act =sum(active_mode=="Yes")/n
+            )|>
+  left_join(dens, by=c("cod_inst"="ori"))
+
+plot(act_pcnt$pcnt_act,act_pcnt$dens_conc_ha)
+
+
+datos_act <- datos|>
+  left_join(dens, by=c("cod_inst"="ori"))|>
+  left_join(emaps)
+  
+  
+
+mosaic(data=datos_act,~dens_cat+active_mode,
+        gp = shading_max,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+
+mosaic(data=datos_act,~emaps_cat+active_mode,
+        gp = shading_max,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+
+
+mosaic(data=datos_act,~emaps_cat+dens_cat,
+        gp = shading_max,
+       spacing = vcd::spacing_equal(sp = unit(0.4, "lines"))
+        )
+
+```
+

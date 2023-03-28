@@ -1,0 +1,117 @@
+---
+title: "Caracterización de usos del suelo"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+# Load required libraries
+library(httr)
+library(jsonlite)
+library(sf)
+library(concaveman)
+library(tmap)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) 
+
+```
+
+
+
+
+```{r funciones}
+
+##Calcular parámetros de densidad de uso de los lugares
+
+den_usos.f <- function(places){
+  
+  st_geometry(places) <- "geometry"
+  dis <- places|>
+  st_drop_geometry()|>
+  group_by(ori)|>
+  summarise(mean_dist=mean(dist))
+  
+  den <- places|>
+  group_by(ori)|>
+  summarise(geometry=st_combine(geometry),
+            num=n()
+            )|>
+  st_convex_hull()%>%
+    mutate(area_m=as.numeric(st_area(.)),
+           dens_ha=(num/area_m) * 10000
+           )
+  
+  ns <- places|>
+  group_by(ori)|>
+  summarise(geometry=st_combine(geometry),
+            num=n()
+            )|>
+  st_drop_geometry()
+
+  den_conc <- polygons <-purrr::map(unique(places$ori),
+                       ~ concaveman(places[places$ori %in% .,])
+                       ) %>% 
+  purrr::map2(unique(places$ori), ~ mutate(.x, ori = .y)) %>% 
+  purrr::reduce(rbind)%>%
+    left_join(ns)%>%
+    mutate(area_conc_m=as.numeric(st_area(.)),
+           dens_conc_ha=(num/area_conc_m) * 10000
+           )|>
+    st_drop_geometry()
+  
+  d1 <- den|>
+    left_join(dis)|>
+    left_join(den_conc)
+  d1
+}
+
+
+```
+
+
+
+```{r datos}
+
+escuelas <- st_read("escuelas_cepra_res.gpkg")
+
+#places
+places_cue <-  st_read("google_places_cuenca.gpkg")
+#places
+places_ib <-  st_read("google_places_ibarra.gpkg")
+```
+
+
+```{r ibarra}
+
+
+den_ibarra <- den_usos.f(places_ib)
+
+qtm(den_ibarra, fill = "dens_ha")+
+  qtm(places_ib, borders =NULL, symbols.col = "cyan", symbols.size = 0.1)
+
+```
+
+```{r cuenca}
+
+
+den_cuenca <- den_usos.f(places_cue)
+
+qtm(den_cuenca, fill = "dens_ha")
+
+plot(den_cuenca$dens_conc_ha, den_cuenca$dens_ha)
+```
+
+```{r}
+
+dens <- rbind(den_cuenca,den_ibarra)|>
+  st_drop_geometry()
+
+esc <- rbind(oris_ib,oris_cue)
+dens
+
+# write_rds(dens, "densidades_uso.rds")
+
+
+```
+

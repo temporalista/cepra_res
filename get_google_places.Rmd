@@ -1,0 +1,217 @@
+---
+title: "Caracterización de usos del suelo"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+# Load required libraries
+library(httr)
+library(jsonlite)
+library(sf)
+library(SpatialKDE)
+library(tmap)
+
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) 
+
+```
+
+
+
+
+```{r funciones}
+
+
+get_gp.f <- function(oris){
+  results <- data.frame()
+  for (i in 1:nrow(oris)){
+    o=oris[i,]
+    lon=st_coordinates(o)[1]
+    lat=st_coordinates(o)[2]
+    gcall <- paste0("https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=",
+                    lat, ",", lon,
+                    "&type=",tipo,
+                    "&rankby=distance",
+                    "&key=", api_key)
+    response <- GET(gcall)
+    places_list <- content(response, "text")|>fromJSON()
+    p=1
+    places_sf <- as.data.frame(cbind(
+      place_id=places_list$results$place_id,
+      status=places_list$results$business_status,
+      ori=o$ori_id,
+      pag=p,
+      tipo=data.frame(tipo = unlist(lapply(places_list$results$types, paste, collapse = ", "))),
+      nombre=places_list$results$name,
+      lon=places_list$results$geometry$location$lng,
+      lat= places_list$results$geometry$location$lat)
+    )|>
+      st_as_sf(coords = c("lon", "lat"), crs = 4326)
+    
+    results <- rbind(results, places_sf)
+    # Check if there are more pages of results
+    while (!is.null(places_list$next_page_token)) {
+      # Wait for a few seconds to avoid OVER_QUERY_LIMIT error
+      Sys.sleep(2)
+      p=p+1
+      # Make the next request with the pagetoken parameter
+      response <- GET(paste0("https://maps.googleapis.com/maps/api/place/nearbysearch/json?key=", 
+                             api_key, "&pagetoken=", places_list$next_page_token))
+      
+      # Extract the JSON content from the response
+      places_json <- content(response, "text")
+      
+      # Convert the JSON content to a list
+      places_list <- fromJSON(places_json)
+      
+      # Convert the results to an sf object
+      places_sf <- as.data.frame(cbind(
+        place_id=places_list$results$place_id,
+        status=places_list$results$business_status,
+        ori=o$ori_id,
+        pag=p,
+        tipo=data.frame(tipo = unlist(lapply(places_list$results$types, paste, collapse = ", "))),
+        nombre=places_list$results$name,
+        lon=places_list$results$geometry$location$lng,
+        lat= places_list$results$geometry$location$lat),
+      )|>
+        st_as_sf(coords = c("lon", "lat"), crs = 4326)
+      
+      # Add the results to the data frame
+      results <- rbind(results, places_sf)
+    }
+  } 
+  results
+}
+
+distancias.f <- function(places,oris){
+  dist <- data.frame()
+  
+  for (i in 1:nrow(oris)){
+    o=oris[i,]
+    places.f <- places|>filter(ori ==o$ori_id)
+    
+    d <- data.frame(place_id= places.f$place_id,
+                    dist=as.numeric(round(st_distance(places.f,o),1)),
+                    ori=o$ori_id
+    )
+    dist <- rbind(dist,d)
+  }
+  places_dis <- left_join(places,dist,
+                        by = c("place_id" = "place_id", "ori" = "ori"))
+  
+  places_dis
+}
+
+##Calcular parámetros de densidad de uso de los lugares
+
+den_usos.f <- function(places){
+  dis <- places|>
+  st_drop_geometry()|>
+  group_by(ori)|>
+  summarise(mean_dist=mean(dist))
+  
+  den <- places|>
+  group_by(ori)|>
+  summarise(geometry=st_combine(geometry),
+            num=n()
+            )|>
+  st_convex_hull()%>%
+    mutate(area_m=as.numeric(st_area(.)),
+           dens_ha=(num/area_m) * 10000
+           )
+  
+  left_join(den,dis)
+}
+
+
+```
+
+
+
+```{r datos}
+#escuelas ibarra
+esc_ib <- st_read("escuelas_ibarra.gpkg")|>
+  st_transform(crs=32717)
+
+oris_ib <- esc_ib|>
+  mutate(ori_id=COD_INST,
+         ori_name=Label)
+
+#escuelas cuenca
+esc_cue <- st_read("escuelas_cuenca.gpkg")
+
+oris_cue <- esc_cue|>
+  st_transform(crs =4326)|>
+  mutate(ori_id=codigo,
+         ori_name=Label)
+
+```
+
+
+```{r ibarra}
+
+
+tipo <- 'point_of_interest'
+api_key <- "AIzaSyBQF7j0IXXsmW5fY_1gl6vyP-jxU8dVbps"
+
+
+
+places_ib <- get_gp.f(oris_ib)
+
+places_dis_ib <- distancias.f(places_ib,oris_ib)
+
+qtm(places_dis_ib, symbols.col="dist", symbols.size = 0.1)+
+  qtm(esc_ib, symbols.col="blue", symbols.size = 0.1)
+
+# st_write(places_dis_ib, "google_places_ibarra.gpkg", delete_layer = T)
+
+den_ibarra <- den_usos.f(places_dis_ib)
+
+qtm(den_ibarra, fill = "dens")+
+  qtm(places_dis_ib)
+
+```
+
+
+
+```{r cuenca}
+tipo <- 'point_of_interest'
+api_key <- "AIzaSyBQF7j0IXXsmW5fY_1gl6vyP-jxU8dVbps"
+
+
+places_cue <- get_gp.f(oris_cue)
+
+places_dis_cue <- distancias.f(places_cue,oris_cue)|>
+  st_transform(32717)
+
+
+# st_write(places_dis_cue, "google_places_cuenca.gpkg", delete_layer = T)
+
+qtm(places_dis_cue, symbols.col="dist", symbols.size = 0.1)+
+  qtm(esc_cue, symbols.col="blue", symbols.size = 0.05)
+
+qtm(places_dis_cue, symbols.col="dist", symbols.size = 0.1)+
+  qtm(esc_cue, symbols.col="blue", symbols.size = 0.05)
+
+## Calculo de densidaedes
+den_cuenca <- den_usos.f(places_dis_cue)
+
+qtm(den_cuenca, fill = "dens_ha")+
+  qtm(places_dis_cue, symbols.size = 0.001)
+
+
+
+
+```
+
+
+
+```{r analisis}
+
+
+
+
+```
+
