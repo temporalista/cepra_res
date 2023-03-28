@@ -23,13 +23,13 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 ```{r eval=FALSE}
 
-datos_ori <- readxl::read_excel("encuesta_padres_limpio.xlsx", 
+datos_ori <- readxl::read_excel("datos_ori/encuesta_padres_limpio.xlsx", 
                                 sheet = "respuestas"
                                 )|>
   filter(validationstatus==1)
 
 
-diccionario <- readxl::read_excel("encuesta_padres_limpio.xlsx", sheet = "diccionario")
+diccionario <- readxl::read_excel("datos_ori/encuesta_padres_limpio.xlsx", sheet = "diccionario")
 
 
 ```
@@ -41,8 +41,8 @@ diccionario <- readxl::read_excel("encuesta_padres_limpio.xlsx", sheet = "diccio
 ord_modo <- c("Walk","Public bus","Private car","School bus","Bicycle",
               "Motorbike","Other","N.A.")
   
-ord_modo_g1 <- c("Active","Public bus","Private vehicle","School bus","Other/NA")
-ord_modo_g2 <- c("Active","Motorised","Other/NA")
+ord_modo_g1 <- c("Active","Public bus","Private vehicle","School bus","Other","NA")
+ord_modo_g2 <- c("Active","Motorised","Other","N.A")
 
 ord_tiempo <- c("0-5","6-15","16-30","31-60",">60","N.A.")
 ord_tiempo_g1 <- c("0-15",">15","N.A.")
@@ -54,7 +54,7 @@ datos <- datos_ori |>
                         "Niño" = "Boy",
                         "Niña" = "Girl",
                         "No sabe/No contesta" = "N.A."
-                        )),
+    )),
     ida_mode = factor(recode(ida_modo,
                              "Automóvil" = "Private car",
                              "Bicicleta" = "Bicycle",
@@ -65,7 +65,7 @@ datos <- datos_ori |>
                              "Moto" = "Motorbike",
                              "No sabe/No contesta" = "N.A.",
                              "Otro" = "Other"
-                             )),
+    )),
     vuelta_mode = factor(recode(vuelta_modo,
                                 "Automóvil" = "Private car",
                                 "Bicicleta" = "Bicycle",
@@ -76,19 +76,8 @@ datos <- datos_ori |>
                                 "Moto" = "Motorbike",
                                 "No sabe/No contesta" = "N.A.",
                                 "Otro" = "Other"
-                                )),
+    )),
     ida_mode_g1 = factor(recode(ida_modo,
-                             "Automóvil" = "Private vehicle",
-                             "Bicicleta" = "Active",
-                             "Bus Público" = "Public bus",
-                             "Bus Escolar" = "School bus",
-                             "Buseta Escolar" = "School bus",
-                             "Caminando" = "Active",
-                             "Moto" = "Private vehicle",
-                             "No sabe/No contesta" = "Other/NA",
-                             "Otro" = "Other/NA"
-                             )),
-    vuelta_mode_g1 = factor(recode(vuelta_modo,
                                 "Automóvil" = "Private vehicle",
                                 "Bicicleta" = "Active",
                                 "Bus Público" = "Public bus",
@@ -96,21 +85,21 @@ datos <- datos_ori |>
                                 "Buseta Escolar" = "School bus",
                                 "Caminando" = "Active",
                                 "Moto" = "Private vehicle",
-                                "No sabe/No contesta" = "Other/NA",
-                                "Otro" = "Other/NA"
-                                )),
-        ida_mode_g2 = factor(recode(ida_modo,
-                             "Automóvil" = "Motorised",
-                             "Bicicleta" = "Active",
-                             "Bus Público" = "Motorised",
-                             "Bus Escolar" = "Motorised",
-                             "Buseta Escolar" = "Motorised",
-                             "Caminando" = "Active",
-                             "Moto" = "Motorised",
-                             "No sabe/No contesta" = "Other/NA",
-                             "Otro" = "Other/NA"
-                             )),
-    vuelta_mode_g2 = factor(recode(vuelta_modo,
+                                "No sabe/No contesta" = "N.A.",
+                                "Otro" = "Other"
+    )),
+    vuelta_mode_g1 = factor(recode(vuelta_modo,
+                                   "Automóvil" = "Private vehicle",
+                                   "Bicicleta" = "Active",
+                                   "Bus Público" = "Public bus",
+                                   "Bus Escolar" = "School bus",
+                                   "Buseta Escolar" = "School bus",
+                                   "Caminando" = "Active",
+                                   "Moto" = "Private vehicle",
+                                "No sabe/No contesta" = "N.A.",
+                                "Otro" = "Other"
+    )),
+    ida_mode_g2 = factor(recode(ida_modo,
                                 "Automóvil" = "Motorised",
                                 "Bicicleta" = "Active",
                                 "Bus Público" = "Motorised",
@@ -118,9 +107,20 @@ datos <- datos_ori |>
                                 "Buseta Escolar" = "Motorised",
                                 "Caminando" = "Active",
                                 "Moto" = "Motorised",
-                                "No sabe/No contesta" = "Other/NA",
-                                "Otro" = "Other/NA"
-                                )),
+                                "No sabe/No contesta" = "N.A.",
+                                "Otro" = "Other"
+    )),
+    vuelta_mode_g2 = factor(recode(vuelta_modo,
+                                   "Automóvil" = "Motorised",
+                                   "Bicicleta" = "Active",
+                                   "Bus Público" = "Motorised",
+                                   "Bus Escolar" = "Motorised",
+                                   "Buseta Escolar" = "Motorised",
+                                   "Caminando" = "Active",
+                                   "Moto" = "Motorised",
+                                "No sabe/No contesta" = "N.A.",
+                                "Otro" = "Other"
+    )),
     ida_time = factor(recode(ida_tiempo,
                              "Menos de 5 min" = "0-5",
                              "Entre 5 min y 15 min" = "6-15",
@@ -128,85 +128,86 @@ datos <- datos_ori |>
                              "Entre 30 min y 60 min" = "31-60",
                              "Más de 60 min"=">60",
                              "No sabe/No contesta" = "N.A."
-                             )),
+    )),
     ida_time_g1 = factor(recode(ida_tiempo,
-                             "Menos de 5 min" = "0-15",
-                             "Entre 5 min y 15 min" = "0-15",
-                             "Entre 15 min y 30 min" = ">15",
-                             "Entre 30 min y 60 min" = ">15",
-                             "Más de 60 min"=">15",
-                             "No sabe/No contesta" = "N.A."
-                             )),
+                                "Menos de 5 min" = "0-15",
+                                "Entre 5 min y 15 min" = "0-15",
+                                "Entre 15 min y 30 min" = ">15",
+                                "Entre 30 min y 60 min" = ">15",
+                                "Más de 60 min"=">15",
+                                "No sabe/No contesta" = "N.A."
+    )),
     ida_bythemself = factor(recode(ida_acomp_solo,
-                                "1"="Yes",
-                                "0"="No"
-                                )),
+                                   "1"="Yes",
+                                   "0"="No"
+    )),
     vuelta_bythemself = factor(recode(vuelta_acomp_solo,
-                                "1"="Yes",
-                                "0"="No"
-                                )),
+                                      "1"="Yes",
+                                      "0"="No"
+    )),
     movac_obesity= factor(recode(movact_previene_obesidad,
-                                      "Muy en desacuerdo"="Totally disagree",
-                                      "Algo en desacuerdo"="Somehow disagree",
-                                      "Algo de acuerdo"="Somehow agree", 
-                                      "Muy de acuerdo"="Totally agree",
-                                      "No sabe/No contesta"="N.A."
-                                      )),
+                                 "Muy en desacuerdo"="Totally disagree",
+                                 "Algo en desacuerdo"="Somehow disagree",
+                                 "Algo de acuerdo"="Somehow agree", 
+                                 "Muy de acuerdo"="Totally agree",
+                                 "No sabe/No contesta"="N.A."
+    )),
     movac_cvrisk= factor(recode(movact_reduce_riesgo,
-                                      "Muy en desacuerdo"="Totally disagree",
-                                      "Algo en desacuerdo"="Somehow disagree",
-                                      "Algo de acuerdo"="Somehow agree", 
-                                      "Muy de acuerdo"="Totally agree",
-                                      "No sabe/No contesta"="N.A."
-                                      )),
+                                "Muy en desacuerdo"="Totally disagree",
+                                "Algo en desacuerdo"="Somehow disagree",
+                                "Algo de acuerdo"="Somehow agree", 
+                                "Muy de acuerdo"="Totally agree",
+                                "No sabe/No contesta"="N.A."
+    )),
     movac_pollut= factor(recode(movact_disminuye_contam,
-                                      "Muy en desacuerdo"="Totally disagree",
-                                      "Algo en desacuerdo"="Somehow disagree",
-                                      "Algo de acuerdo"="Somehow agree", 
-                                      "Muy de acuerdo"="Totally agree",
-                                      "No sabe/No contesta"="N.A."
-                                      )),
+                                "Muy en desacuerdo"="Totally disagree",
+                                "Algo en desacuerdo"="Somehow disagree",
+                                "Algo de acuerdo"="Somehow agree", 
+                                "Muy de acuerdo"="Totally agree",
+                                "No sabe/No contesta"="N.A."
+    )),
     movac_traffic= factor(recode(movact_disminuye_trafico,
-                                      "Muy en desacuerdo"="Totally disagree",
-                                      "Algo en desacuerdo"="Somehow disagree",
-                                      "Algo de acuerdo"="Somehow agree", 
-                                      "Muy de acuerdo"="Totally agree",
-                                      "No sabe/No contesta"="N.A."
-                                      )),
+                                 "Muy en desacuerdo"="Totally disagree",
+                                 "Algo en desacuerdo"="Somehow disagree",
+                                 "Algo de acuerdo"="Somehow agree", 
+                                 "Muy de acuerdo"="Totally agree",
+                                 "No sabe/No contesta"="N.A."
+    )),
     movac_academic= factor(recode(movact_mejora_academia,
-                                      "Muy en desacuerdo"="Totally disagree",
-                                      "Algo en desacuerdo"="Somehow disagree",
-                                      "Algo de acuerdo"="Somehow agree", 
-                                      "Muy de acuerdo"="Totally agree",
-                                      "No sabe/No contesta"="N.A."
-                                      )),
-        parent_studies= factor(recode(padre_nivel_estudios,
-                                      "Formación personal"="No",
-                                      "Primaria"="No",
-                                      "Secundaria"="Yes", 
-                                      "Sin estudios"="No",
-                                      "Universitarios"="Yes",
-                                      "No sabe/No contesta"="N.A."
-                                      )),
-            family_vehicle= factor(recode(padre_vehiculo4ruedas,
-                                      "Dos"="Yes",
-                                      "Más de dos"="Yes",
-                                      "Uno"="Yes", 
-                                      "Ninguno"="No",
-                                      "No sabe/No contesta"="N.A."
-                                      )),
-                household_income= factor(recode(padres_ingresos_hogar,
-                                      "Ninguno"="No",
-                                      "< 399"="No", 
-                                      "400 - 799"="Yes",
-                                      "800 - 1199"="Yes",
-                                      "1200 - 1599"="Yes",
-                                      "2000 - 2399"="Yes",
-                                      "2400 - 2799"="Yes",
-                                      "> 3200"="Yes",
-                                      "No sabe/no contesta"="N.A."
-                                      )),
-    )|>
+                                  "Muy en desacuerdo"="Totally disagree",
+                                  "Algo en desacuerdo"="Somehow disagree",
+                                  "Algo de acuerdo"="Somehow agree", 
+                                  "Muy de acuerdo"="Totally agree",
+                                  "No sabe/No contesta"="N.A."
+    )),
+    parent_studies= factor(recode(padre_nivel_estudios,
+                                  "Formación personal"="No",
+                                  "Primaria"="No",
+                                  "Secundaria"="Yes", 
+                                  "Sin estudios"="No",
+                                  "Universitarios"="Yes",
+                                  "No sabe/No contesta"="N.A."
+    )),
+    family_vehicle= factor(recode(padre_vehiculo4ruedas,
+                                  "Dos"="Yes",
+                                  "Más de dos"="Yes",
+                                  "Uno"="Yes", 
+                                  "Ninguno"="No",
+                                  "No sabe/No contesta"="N.A."
+    )),
+    household_income= factor(recode(padres_ingresos_hogar,
+                                    "Ninguno"="No",
+                                    "< 399"="No", 
+                                    "400 - 799"="Yes",
+                                    "800 - 1199"="Yes",
+                                    "1200 - 1599"="Yes",
+                                    "2000 - 2399"="Yes",
+                                    "2400 - 2799"="Yes",
+                                    "> 3200"="Yes",
+                                    "No sabe/no contesta"="N.A."
+    )),
+  )|>
+  #update active modes
   mutate(
     active_mode=factor(case_when(
       ida_mode=="Bicycle"|
@@ -224,6 +225,7 @@ datos <- datos_ori |>
       TRUE ~ "No"))
     
   )|>
+  #reorder factors
   mutate(ida_mode=fct_relevel(ida_mode,ord_modo),
          vuelta_mode=fct_relevel(vuelta_mode,ord_modo),
          ida_mode_g1=fct_relevel(ida_mode_g1,ord_modo_g1),
@@ -232,10 +234,8 @@ datos <- datos_ori |>
          vuelta_mode_g1=fct_relevel(vuelta_mode_g1,ord_modo_g1),
          ida_time=fct_relevel(ida_time,ord_tiempo),
          ida_time_g1=fct_relevel(ida_time_g1,ord_tiempo_g1)
-         )|>
-  rename(city=ciudad)
-
-datos <- datos |> 
+  )|>
+  #update school ids
   mutate(
     cod_inst = factor(recode(escuela,
                         "Velasco Ibarra" = "10H00090",
@@ -245,7 +245,31 @@ datos <- datos |>
                         "Ana Luisa Leoro"="10H00050",
                         "Agustín Cueva"="10H00004"
                         ))
-  )
-# write_rds(datos, "datos_procesados.rds")
+  )|>
+  #rename some columns
+  rename(city=ciudad,
+         school=escuela)
+
+
+     
+mycols <- c("cod_enc", "city", "school","cod_inst",
+            "sex", "ida_mode",
+            "vuelta_mode", "ida_mode_g1",
+            "vuelta_mode_g1", "ida_mode_g2",
+            "vuelta_mode_g2", "ida_time",
+            "ida_time_g1", "ida_bythemself",
+            "vuelta_bythemself", "movac_obesity",
+            "movac_cvrisk", "movac_pollut",
+            "movac_traffic", "movac_academic",
+            "parent_studies", "family_vehicle",
+            "household_income", "active_mode",
+            "walk")
+
+
+datos_sel <- datos |>
+  select(mycols)
+
+glimpse(datos_sel)
+# write_rds(datos_sel, "datos_prep/datos_procesados.rds")
 
 ```
