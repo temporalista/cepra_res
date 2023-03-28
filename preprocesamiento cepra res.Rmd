@@ -1,6 +1,8 @@
 ---
 title: "R preprocesamiento encuesta cepra res"
 output: html_notebook
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r}
@@ -41,7 +43,7 @@ diccionario <- readxl::read_excel("datos_ori/encuesta_padres_limpio.xlsx", sheet
 ord_modo <- c("Walk","Public bus","Private car","School bus","Bicycle",
               "Motorbike","Other","N.A.")
   
-ord_modo_g1 <- c("Active","Public bus","Private vehicle","School bus","Other","NA")
+ord_modo_g1 <- c("Active","Public bus","Private vehicle","School bus","Other","N.A.")
 ord_modo_g2 <- c("Active","Motorised","Other","N.A")
 
 ord_tiempo <- c("0-5","6-15","16-30","31-60",">60","N.A.")
