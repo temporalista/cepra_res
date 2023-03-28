@@ -30,16 +30,15 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 ```{r}
 
-datos <- read_rds("datos_procesados.rds")
+datos <- read_rds("datos_prep/datos_procesados.rds")
 
 unique(datos$city)
 
-diccionario <- readxl::read_excel("encuesta_padres_limpio.xlsx", sheet = "diccionario")
+diccionario <- readxl::read_excel("datos_prep/diccionario.xlsx", sheet = "diccionario")
 
 glimpse(datos)
 
-datos_gpt <- datos|>
-  select(city,sexo,)
+
 ```
 
 # *Funciones*

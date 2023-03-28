@@ -9,10 +9,10 @@ editor_options:
 library(dplyr)
 library(readxl)
 library(janitor)
-library(ggplot2)
+# library(ggplot2)
 library(forcats)
 library(readr)
-library(vcd)
+# library(vcd)
 
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path)) 
 
@@ -44,7 +44,7 @@ ord_modo <- c("Walk","Public bus","Private car","School bus","Bicycle",
               "Motorbike","Other","N.A.")
   
 ord_modo_g1 <- c("Active","Public bus","Private vehicle","School bus","Other","N.A.")
-ord_modo_g2 <- c("Active","Motorised","Other","N.A")
+ord_modo_g2 <- c("Active","Motorised","Other","N.A.")
 
 ord_tiempo <- c("0-5","6-15","16-30","31-60",">60","N.A.")
 ord_tiempo_g1 <- c("0-15",">15","N.A.")
@@ -147,39 +147,74 @@ datos <- datos_ori |>
                                       "1"="Yes",
                                       "0"="No"
     )),
-    movac_obesity= factor(recode(movact_previene_obesidad,
+    movac_obesity_4l= factor(recode(movact_previene_obesidad,
                                  "Muy en desacuerdo"="Totally disagree",
                                  "Algo en desacuerdo"="Somehow disagree",
                                  "Algo de acuerdo"="Somehow agree", 
                                  "Muy de acuerdo"="Totally agree",
                                  "No sabe/No contesta"="N.A."
     )),
-    movac_cvrisk= factor(recode(movact_reduce_riesgo,
+    movac_cvrisk_4l= factor(recode(movact_reduce_riesgo,
                                 "Muy en desacuerdo"="Totally disagree",
                                 "Algo en desacuerdo"="Somehow disagree",
                                 "Algo de acuerdo"="Somehow agree", 
                                 "Muy de acuerdo"="Totally agree",
                                 "No sabe/No contesta"="N.A."
     )),
-    movac_pollut= factor(recode(movact_disminuye_contam,
+    movac_pollut_4l= factor(recode(movact_disminuye_contam,
                                 "Muy en desacuerdo"="Totally disagree",
                                 "Algo en desacuerdo"="Somehow disagree",
                                 "Algo de acuerdo"="Somehow agree", 
                                 "Muy de acuerdo"="Totally agree",
                                 "No sabe/No contesta"="N.A."
     )),
-    movac_traffic= factor(recode(movact_disminuye_trafico,
+    movac_traffic_4l= factor(recode(movact_disminuye_trafico,
                                  "Muy en desacuerdo"="Totally disagree",
                                  "Algo en desacuerdo"="Somehow disagree",
                                  "Algo de acuerdo"="Somehow agree", 
                                  "Muy de acuerdo"="Totally agree",
                                  "No sabe/No contesta"="N.A."
     )),
-    movac_academic= factor(recode(movact_mejora_academia,
+    movac_academic_4l= factor(recode(movact_mejora_academia,
                                   "Muy en desacuerdo"="Totally disagree",
                                   "Algo en desacuerdo"="Somehow disagree",
                                   "Algo de acuerdo"="Somehow agree", 
                                   "Muy de acuerdo"="Totally agree",
+                                  "No sabe/No contesta"="N.A."
+    )),
+    movac_obesity= factor(recode(movact_previene_obesidad,
+                                 "Muy en desacuerdo"="disagree",
+                                 "Algo en desacuerdo"="disagree",
+                                 "Algo de acuerdo"="agree", 
+                                 "Muy de acuerdo"="agree",
+                                 "No sabe/No contesta"="N.A."
+    )),
+    movac_cvrisk= factor(recode(movact_reduce_riesgo,
+                                "Muy en desacuerdo"="disagree",
+                                "Algo en desacuerdo"="disagree",
+                                "Algo de acuerdo"="agree", 
+                                "Muy de acuerdo"="agree",
+                                "No sabe/No contesta"="N.A."
+    )),
+    movac_pollut= factor(recode(movact_disminuye_contam,
+                                "Muy en desacuerdo"="disagree",
+                                "Algo en desacuerdo"="disagree",
+                                "Algo de acuerdo"="agree", 
+                                "Muy de acuerdo"="agree",
+                                "No sabe/No contesta"="N.A."
+    )),
+    movac_traffic= factor(recode(movact_disminuye_trafico,
+                                 "Muy en desacuerdo"="disagree",
+                                 "Algo en desacuerdo"="disagree",
+                                 "Algo de acuerdo"="agree", 
+                                 "Muy de acuerdo"="agree",
+                                 "No sabe/No contesta"="N.A."
+    )),
+    movac_academic= factor(recode(movact_mejora_academia,
+                                  "Muy en desacuerdo"="disagree",
+                                  "Algo en desacuerdo"="disagree",
+                                  "Algo de acuerdo"="agree", 
+                                  "Muy de acuerdo"="agree",
                                   "No sabe/No contesta"="N.A."
     )),
     parent_studies= factor(recode(padre_nivel_estudios,
@@ -250,8 +285,9 @@ datos <- datos_ori |>
   )|>
   #rename some columns
   rename(city=ciudad,
-         school=escuela)
-
+         school=escuela) %>% 
+  #define NA
+  mutate(across(where(is.character), ~na_if(., "N.A.")))
 
      
 mycols <- c("cod_enc", "city", "school","cod_inst",
@@ -268,8 +304,12 @@ mycols <- c("cod_enc", "city", "school","cod_inst",
             "walk")
 
 
-datos_sel <- datos |>
-  select(mycols)
+datos_sel <- datos %>%
+  select(mycols)%>%
+  mutate(across(everything(), 
+                 ~ ifelse(. == "N.A.",NA, as.character(.))
+                )
+         )
 
 glimpse(datos_sel)
 # write_rds(datos_sel, "datos_prep/datos_procesados.rds")

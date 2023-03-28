@@ -3,19 +3,19 @@ library(dplyr)
 library(tidyr)
 library(caret)
 library(glmnet)
+library(readr)
 
 # Load the data
 data_ori <- read_rds("datos_prep/datos_procesados.rds")
-
+colnames(data_ori)
+vars <- c("city","sex","movac_obesity","movac_cvrisk","movac_pollut","movac_traffic","movac_academic","parent_studies",    "family_vehicle","household_income","active_mode" )
+  
 # Preprocess the data
 data <- data_ori %>% 
-  select(sexo,city,movac_obesity:movac_traffic,
-         razones_modo_distancia:razones_modo_conveniencia,
-         mejoras_menor_distancia:mejoras_masninos_bici,
-         active_mode
-         ) %>%  # Remove unnecessary columns
-  mutate(across(everything(), as.character)) %>%  # Convert location columns to character
-  mutate(across(everything(), as.factor)) %>%  # Convert categorical columns to factor
+  select(vars)%>% 
+  # Convert location columns to character
+  mutate(across(everything(), as.factor)) %>%  
+  # Convert categorical columns to factor
   drop_na()  # Drop rows with missing values
 
 # Split the data into training and testing sets
@@ -39,6 +39,8 @@ plot(cv_model)
 coefs <- coef.glmnet(cv_model, s = "lambda.1se")[["1"]]|>
     as.matrix()%>% 
   as.data.frame()
+
+coefs
 
 # Train a multinomial logistic regression model with the selected predictors
 final_model <- multinom(active_mode ~ age + education + has_transit_pass + transit_cost + driving_license + employment_status, data = train_data)
